@@ -508,7 +508,9 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     bool isShared() const { return mShared; }
     // Once a context is setShared() it cannot be undone
     void setShared() { mShared = true; }
+    void setNativeShared(uintptr_t sharedContext) { mNativeSharedContext = sharedContext; }
 
+    uintptr_t getNativeSharedContext() const { return mNativeSharedContext; }
     const State &getState() const { return mState; }
     GLint getClientMajorVersion() const { return mState.getClientMajorVersion(); }
     GLint getClientMinorVersion() const { return mState.getClientMinorVersion(); }
@@ -788,6 +790,8 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     const bool mIsExternal;
     const bool mSaveAndRestoreState;
+
+    uintptr_t mNativeSharedContext;
 
     bool mIsCurrent;
 };

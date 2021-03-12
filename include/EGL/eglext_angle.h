@@ -345,6 +345,11 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffersWithFrameTokenANGLE(EGLDisplay dpy, 
 #define EGL_EXTERNAL_CONTEXT_SAVE_STATE_ANGLE 0x3490
 #endif /* EGL_ANGLE_external_context_and_surface */
 
+#ifndef EGL_ANGLE_native_shared_context
+#define EGL_ANGLE_native_shared_context
+#define EGL_NATIVE_SHARED_CONTEXT_ANGLE 0x3494
+#endif /* EGL_ANGLE_native_shared_context */
+
 // clang-format on
 
 #endif  // INCLUDE_EGL_EGLEXT_ANGLE_

@@ -1227,6 +1227,9 @@ struct DisplayExtensions
 
     // EGL_EXT_buffer_age
     bool bufferAgeEXT = false;
+    //
+    // EGL_ANGLE_native_shared_context
+    bool nativeSharedContext = false;
 };
 
 struct DeviceExtensions

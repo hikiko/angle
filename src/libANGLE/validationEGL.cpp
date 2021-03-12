@@ -1989,6 +1989,23 @@ bool ValidateCreateContext(const ValidationContext *val,
                     return false;
                 }
                 break;
+            case EGL_NATIVE_SHARED_CONTEXT_ANGLE:
+                if (!display->getExtensions().nativeSharedContext)
+                {
+                    val->setError(EGL_BAD_ATTRIBUTE,
+                                  "Attribute "
+                                  "EGL_ANGLE_NATIVE_SHARED_CONTEXT requires "
+                                  "EGL_ANGLE_native_shared_context.");
+                    return false;
+                }
+                if (value != EGL_TRUE && value != EGL_FALSE)
+                {
+                    val->setError(EGL_BAD_ATTRIBUTE,
+                                  "EGL_ANGLE_NATIVE_SHARED_CONTEXT must be "
+                                  "EGL_TRUE or EGL_FALSE.");
+                    return false;
+                }
+                break;
             default:
                 val->setError(EGL_BAD_ATTRIBUTE, "Unknown attribute.");
                 return false;
@@ -2064,7 +2081,8 @@ bool ValidateCreateContext(const ValidationContext *val,
         return false;
     }
 
-    if (shareContext)
+    printf("%s: %s:%d XXX\n", __func__, __FILE__, __LINE__);
+    if (shareContext && !display->getExtensions().nativeSharedContext)
     {
         // Shared context is invalid or is owned by another display
         if (!display->isValidContext(shareContext))

@@ -324,8 +324,8 @@ Context::Context(egl::Display *display,
                  const egl::AttributeMap &attribs,
                  const egl::DisplayExtensions &displayExtensions,
                  const egl::ClientExtensions &clientExtensions)
-    : mState(shareContext ? &shareContext->mState : nullptr,
-             AllocateOrGetShareGroup(display, shareContext),
+    : mState(shareContext && !display->getExtensions().nativeSharedContext ? &shareContext->mState : nullptr,
+             display->getExtensions().nativeSharedContext ? AllocateOrGetShareGroup(display, nullptr) : AllocateOrGetShareGroup(display, shareContext),
              shareTextures,
              shareSemaphores,
              &mOverlay,
@@ -371,6 +371,7 @@ Context::Context(egl::Display *display,
       mOverlay(mImplementation.get()),
       mIsExternal(GetIsExternal(attribs)),
       mSaveAndRestoreState(GetSaveAndRestoreState(attribs)),
+      mNativeSharedContext(0),
       mIsCurrent(false)
 {
     for (angle::SubjectIndex uboIndex = kUniformBuffer0SubjectIndex;
@@ -397,6 +398,7 @@ Context::Context(egl::Display *display,
 
 egl::Error Context::initialize()
 {
+    printf("mImplementation? %s, %s %s:%d\n", mImplementation ? "yes" : "no", __func__, __FILE__, __LINE__);
     if (!mImplementation)
         return egl::Error(EGL_NOT_INITIALIZED, "native context creation failed");
     return egl::NoError();

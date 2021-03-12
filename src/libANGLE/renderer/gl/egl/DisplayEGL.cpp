@@ -114,6 +114,7 @@ DisplayEGL::DisplayEGL(const egl::DisplayState &state)
       mEGL(nullptr),
       mConfig(EGL_NO_CONFIG_KHR),
       mCurrentNativeContexts(),
+      mNativeSharedContext(EGL_NO_CONTEXT),
       mHasEXTCreateContextRobustness(false),
       mHasNVRobustnessVideoMemoryPurge(false)
 {}
@@ -200,8 +201,17 @@ egl::Error DisplayEGL::initializeContext(EGLContext shareContext,
                 attribList.push_back(GL_TRUE);
             }
         }
+
         attribList.push_back(EGL_NONE);
-        context = mEGL->createContext(mConfig, shareContext, attribList.data());
+
+        printf("%s, %s:%d\n", __func__, __FILE__, __LINE__);
+        if (mHasNativeSharedContext) {
+            printf("yes to native\n");
+            context = mEGL->createContext(mConfig, mNativeSharedContext, attribList.data());
+        } else {
+            context = mEGL->createContext(mConfig, shareContext, attribList.data());
+        }
+        printf("%s, %s:%d\n", __func__, __FILE__, __LINE__);
         if (context != EGL_NO_CONTEXT)
         {
             *outContext = context;
@@ -245,6 +255,7 @@ egl::Error DisplayEGL::initialize(egl::Display *display)
 
     mHasEXTCreateContextRobustness   = mEGL->hasExtension("EGL_EXT_create_context_robustness");
     mHasNVRobustnessVideoMemoryPurge = mEGL->hasExtension("EGL_NV_robustness_video_memory_purge");
+    mHasNativeSharedContext          = mDisplayAttributes.get(EGL_NATIVE_SHARED_CONTEXT_ANGLE, 0); 
 
     const EGLAttrib platformAttrib = mDisplayAttributes.get(EGL_PLATFORM_ANGLE_TYPE_ANGLE, 0);
     EGLint esBit                   = ESBitFromPlatformAttrib(mEGL, platformAttrib);
@@ -362,13 +373,21 @@ ContextImpl *DisplayEGL::createContext(const gl::State &state,
 {
     std::shared_ptr<RendererEGL> renderer;
     EGLContext nativeShareContext = EGL_NO_CONTEXT;
-    if (shareContext)
-    {
-        ContextEGL *shareContextEGL = GetImplAs<ContextEGL>(shareContext);
-        nativeShareContext          = shareContextEGL->getContext();
+    mHasNativeSharedContext = attribs.get(EGL_NATIVE_SHARED_CONTEXT_ANGLE, EGL_FALSE) == EGL_TRUE;
+
+    if (shareContext) {
+        if (!mHasNativeSharedContext) {
+            ContextEGL *shareContextEGL = GetImplAs<ContextEGL>(shareContext);
+            nativeShareContext          = shareContextEGL->getContext();
+        }
+    }
+    egl::Error error = createRenderer(nativeShareContext,
+            &renderer);
+
+    if (mHasNativeSharedContext) {
+        mNativeSharedContext = (EGLContext)shareContext;
     }
 
-    egl::Error error = createRenderer(nativeShareContext, &renderer);
     if (error.isError())
     {
         ERR() << "Failed to create a shared renderer: " << error.getMessage();
@@ -640,6 +659,9 @@ void DisplayEGL::generateExtensions(egl::DisplayExtensions *outExtensions) const
     outExtensions->displayTextureShareGroup   = true;
     outExtensions->displaySemaphoreShareGroup = true;
 
+    //FIXME
+    outExtensions->nativeSharedContext = true;
+
     // We will fallback to regular swap if swapBuffersWithDamage isn't
     // supported, so indicate support here to keep validation happy.
     outExtensions->swapBuffersWithDamage = true;
@@ -754,7 +776,12 @@ WorkerContext *DisplayEGL::createWorkerContext(std::string *infoLog,
                                                EGLContext sharedContext,
                                                const native_egl::AttributeVector workerAttribs)
 {
-    EGLContext context = mEGL->createContext(mConfig, sharedContext, workerAttribs.data());
+    EGLContext context;
+    if (this->mHasNativeSharedContext) {
+        context = mEGL->createContext(mConfig, mNativeSharedContext, workerAttribs.data());
+    } else {
+        context = mEGL->createContext(mConfig, sharedContext, workerAttribs.data());
+    }
     if (context == EGL_NO_CONTEXT)
     {
         *infoLog += "Unable to create the EGL context.";

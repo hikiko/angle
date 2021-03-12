@@ -1234,9 +1234,14 @@ Error Display::createContext(const Config *configuration,
         }
     }
 
+    bool nativeSharedContextEnabled = EGL_FALSE;
+    nativeSharedContextEnabled = (attribs.get(EGL_NATIVE_SHARED_CONTEXT_ANGLE, GL_FALSE) ==
+                GL_TRUE);
+
     gl::Context *context = new gl::Context(this, configuration, shareContext, shareTextures,
                                            shareSemaphores, cachePointer, clientType, attribs,
                                            mDisplayExtensions, GetClientExtensions());
+
     Error error          = context->initialize();
     if (error.isError())
     {
@@ -1246,7 +1251,8 @@ Error Display::createContext(const Config *configuration,
 
     if (shareContext != nullptr)
     {
-        shareContext->setShared();
+        if (!nativeSharedContextEnabled)
+            shareContext->setShared();
     }
 
     ASSERT(context != nullptr);

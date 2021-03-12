@@ -140,6 +140,9 @@ class DisplayEGL : public DisplayGL
     };
     angle::HashMap<std::thread::id, CurrentNativeContext> mCurrentNativeContexts;
 
+    bool mHasNativeSharedContext;
+    EGLContext mNativeSharedContext;
+
   private:
     void generateCaps(egl::Caps *outCaps) const override;
 
